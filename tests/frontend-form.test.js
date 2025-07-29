@@ -16,7 +16,21 @@ const mockForm = {
     addEventListener: jest.fn(),
     querySelector: jest.fn(() => mockSubmitButton),
     querySelectorAll: jest.fn(() => []),
-    reset: jest.fn()
+    reset: jest.fn(),
+    cloneNode: jest.fn(() => ({
+        addEventListener: jest.fn(),
+        querySelector: jest.fn(() => mockSubmitButton),
+        querySelectorAll: jest.fn(() => []),
+        reset: jest.fn(),
+        setAttribute: jest.fn(),
+        parentNode: {
+            replaceChild: jest.fn()
+        }
+    })),
+    setAttribute: jest.fn(),
+    parentNode: {
+        replaceChild: jest.fn()
+    }
 };
 
 const mockFormData = {
@@ -80,12 +94,17 @@ describe('Frontend Form Handler', () => {
         // Call initializeForms
         formHandler.initializeForms();
         
-        expect(mockForm.addEventListener).toHaveBeenCalledWith('submit', formHandler.handleFormSubmit);
+        // Since the form handler clones the form, check that cloneNode was called
+        expect(mockForm.cloneNode).toHaveBeenCalledWith(true);
+        // And that replaceChild was called to replace the original with the clone
+        expect(mockForm.parentNode.replaceChild).toHaveBeenCalled();
     });
 
     test('should prevent default form submission', async () => {
         const mockEvent = {
             preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+            stopImmediatePropagation: jest.fn(),
             target: mockForm
         };
         
@@ -108,6 +127,8 @@ describe('Frontend Form Handler', () => {
         
         const mockEvent = {
             preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+            stopImmediatePropagation: jest.fn(),
             target: mockForm
         };
         
@@ -131,6 +152,8 @@ describe('Frontend Form Handler', () => {
         
         const mockEvent = {
             preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+            stopImmediatePropagation: jest.fn(),
             target: mockForm
         };
         
@@ -147,6 +170,8 @@ describe('Frontend Form Handler', () => {
         
         const mockEvent = {
             preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+            stopImmediatePropagation: jest.fn(),
             target: mockForm
         };
         
@@ -174,6 +199,8 @@ describe('Frontend Form Handler', () => {
         
         const mockEvent = {
             preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+            stopImmediatePropagation: jest.fn(),
             target: mockForm
         };
         
@@ -197,6 +224,8 @@ describe('Frontend Form Handler', () => {
         
         const mockEvent = {
             preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+            stopImmediatePropagation: jest.fn(),
             target: mockForm
         };
         
@@ -216,6 +245,8 @@ describe('Frontend Form Handler', () => {
         
         const mockEvent = {
             preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+            stopImmediatePropagation: jest.fn(),
             target: mockForm
         };
         
