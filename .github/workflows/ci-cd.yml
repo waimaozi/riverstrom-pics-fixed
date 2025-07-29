@@ -1,0 +1,125 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        php-version: [8.1, 8.2, 8.3, 8.4]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Set up PHP ${{ matrix.php-version }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, iconv, json, mbstring, pdo
+        tools: composer:v2
+        coverage: xdebug
+    
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: ${{ runner.os }}-composer-
+    
+    - name: Install Node.js dependencies
+      run: npm ci
+    
+    - name: Install PHP dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+    
+    - name: Run JavaScript linter
+      run: npm run lint
+    
+    - name: Run frontend tests
+      run: npm run test:ci
+    
+    - name: Run backend tests
+      run: composer test
+    
+    - name: Check test coverage
+      run: npm run test:coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage/lcov.info
+        fail_ci_if_error: true
+    
+    - name: Build static assets
+      run: npm run build
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build for production
+      run: npm run build
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
+        exclude_assets: |
+          node_modules
+          vendor
+          tests
+          coverage
+          .phpunit*
+          composer.json
+          composer.lock
+          package*.json
+          .eslintrc*
+          .gitignore
+          .github
+          README.md
+    
+    - name: Notify deployment success
+      run: |
+        echo "✅ Deployment successful!"
+        echo "🚀 Website is now live at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run security audit for Node.js
+      run: npm audit --audit-level high
+    
+    - name: Run security audit for PHP
+      uses: symfonycorp/security-checker-action@v5

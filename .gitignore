@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Testing
+coverage/
+.phpunit.result.cache
+.phpunit.cache/
+
+# Configuration files (example files are tracked)
+config.php
+.env
+
+# Logs
+*.log
+form_submissions.log
+form_errors.log
+
+# Cache files
+.cache/
+*.tmp
+*.temp
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
+
+# Backup files
+*.bak
+*.backup
+
+# Lock files (keep package-lock.json for reproducible builds)
+composer.lock
