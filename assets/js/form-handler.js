@@ -3,30 +3,69 @@
  * Handles form submission, validation, and user feedback
  */
 
-// Initialize when DOM is loaded
+// Initialize when DOM is loaded - Override Framer's form handling
 if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', function() {
-        initializeForms();
+        // Wait a bit to ensure Framer has loaded, then override it
+        setTimeout(initializeForms, 100);
     });
+    
+    // Also initialize immediately in case DOMContentLoaded already fired
+    if (document.readyState === 'complete') {
+        setTimeout(initializeForms, 100);
+    }
 }
 
 /**
- * Initialize all forms on the page
+ * Initialize all forms on the page - Aggressively override Framer
  */
 function initializeForms() {
-    // Find all contact forms (both main page and contact page)
-    const forms = document.querySelectorAll('form.framer-7wmuvs, form.framer-1oy82dr');
+    console.log('🔧 Riverstrom: Initializing self-hosted form handlers...');
     
-    forms.forEach(form => {
-        form.addEventListener('submit', handleFormSubmit);
+    // Find all contact forms (both main page and contact page)
+    const forms = document.querySelectorAll('form.framer-7wmuvs, form.framer-1oy82dr, form[data-framer-name*="form"], form[data-framer-name*="Form"]');
+    
+    let formsArray = Array.from(forms);
+    
+    if (formsArray.length === 0) {
+        console.log('⚠️ Riverstrom: No forms found, trying broader selectors...');
+        // Try to find any forms that might be contact forms
+        const allForms = document.querySelectorAll('form');
+        allForms.forEach(form => {
+            const formText = form.textContent.toLowerCase();
+            if (formText.includes('имя') || formText.includes('email') || formText.includes('город') || formText.includes('заявк')) {
+                formsArray.push(form);
+            }
+        });
+    }
+    
+    formsArray.forEach((form, index) => {
+        console.log(`📝 Riverstrom: Setting up form ${index + 1}:`, form);
+        
+        // Remove any existing event listeners by cloning the element
+        const newForm = form.cloneNode(true);
+        form.parentNode.replaceChild(newForm, form);
+        
+        // Add our custom handler with highest priority
+        newForm.addEventListener('submit', handleFormSubmit, { capture: true });
+        
+        // Also override any Framer-specific handlers
+        newForm.setAttribute('data-riverstrom-handled', 'true');
     });
+    
+    console.log(`✅ Riverstrom: Initialized ${formsArray.length} form(s) with self-hosted handlers`);
 }
 
 /**
- * Handle form submission
+ * Handle form submission - Override Framer completely
  */
 async function handleFormSubmit(e) {
+    console.log('🚀 Riverstrom: Form submission intercepted, using self-hosted handler');
+    
+    // Aggressively prevent any other handlers
     e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
     
     const form = e.target;
     const submitButton = form.querySelector('button[type="submit"]');
@@ -54,6 +93,8 @@ async function handleFormSubmit(e) {
     }
     
     try {
+        console.log('📤 Riverstrom: Sending to self-hosted backend:', data);
+        
         const response = await fetch('/backend/contact_handler.php', {
             method: 'POST',
             headers: {
@@ -63,11 +104,14 @@ async function handleFormSubmit(e) {
         });
         
         const result = await response.json();
+        console.log('📥 Riverstrom: Backend response:', result);
         
         if (result.success) {
+            console.log('✅ Riverstrom: Email sent successfully to business@riverstrom.ai');
             showMessage('Спасибо! Ваше сообщение успешно отправлено. Мы свяжемся с вами в ближайшее время.', 'success');
             form.reset();
         } else {
+            console.error('❌ Riverstrom: Backend error:', result.message);
             showMessage(result.message || 'Произошла ошибка при отправке сообщения', 'error');
         }
         
