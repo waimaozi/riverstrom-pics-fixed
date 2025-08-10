@@ -70,7 +70,7 @@
   </script>
  </head>
  <body>
-<div style="background:red;color:white;padding:10px;text-align:center;font-size:20px;">*** TEST BUILD 10/08 ***</div>
+<div style="background:#111;color:#fff;padding:10px;text-align:center;font-size:14px">RS BUILD — FINAL INDEX — v1</div>
   <!-- Framer event tracking removed -->
   
   <div data-framer-hydrate-v2='{"routeId":"augiA20Il","localeId":"default","breakpoints":[{"hash":"72rtr7","mediaQuery":"(min-width: 1440px)"},{"hash":"1xraqrb","mediaQuery":"(min-width: 810px) and (max-width: 1439px)"},{"hash":"si4f46","mediaQuery":"(max-width: 809px)"},{"hash":"qot2z2","mediaQuery":"(min-width: 1440px)"},{"hash":"ic1k5r","mediaQuery":"(min-width: 810px) and (max-width: 1439px)"},{"hash":"jybduh","mediaQuery":"(max-width: 809px)"}]}' data-framer-page-optimized-at="2025-06-05T14:05:26.758Z" data-framer-ssr-released-at="2025-06-04T08:59:37.383Z" id="main">
@@ -2317,8 +2317,7 @@
   </script>
   <div aria-hidden="true" id="svg-templates" style="position: absolute; overflow: hidden; bottom: 0; left: 0; width: 0; height: 0; z-index: 0; contain: strict">
   </div>
-  <iframe name="rsFormSink" style="display:none">
-  </iframe>
+  
   <script id="rsFormUX">
    document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('form[data-rs-form]').forEach(form => {
@@ -2341,21 +2340,20 @@
   </script>
  
 <script>
+// RS FINAL: force native submit to n8n and block Framer interceptors
 (function() {
-  function ensureNativeSubmit(e) {
+  function onSubmitCapture(e) {
     var f = e.target;
-    if (f && f.matches && f.matches('form[data-rs-form]')) {
-      // Block any other handler
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      // Make sure we don't have a target
-      f.removeAttribute('target');
-      // Do native submit (no events fired)
-      HTMLFormElement.prototype.submit.call(f);
-    }
+    if (!f || !f.matches || !f.matches('form[data-rs-form]')) return;
+    // Block any other submit listeners
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    // Ensure target removed
+    f.removeAttribute('target');
+    // Native submit (no JS events fired)
+    HTMLFormElement.prototype.submit.call(f);
   }
-  // Highest priority capture listener
-  document.addEventListener('submit', ensureNativeSubmit, true);
+  document.addEventListener('submit', onSubmitCapture, true);
 })();
 </script>
 
