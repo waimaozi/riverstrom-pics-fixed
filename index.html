@@ -2341,30 +2341,20 @@
  
 <script>
 (function() {
-  function setup() {
-    var form = document.querySelector('form[action*="n8n.lakestrom.com/webhook/contact-form"]');
-    if (!form) return;
-    // Ensure no target
-    form.removeAttribute('target');
-    // Find the submit button inside the form
-    var btn = form.querySelector('button[type="submit"], input[type="submit"]');
-    if (!btn) return;
-    // Intercept click and do a native submit (bypasses all event listeners)
-    btn.addEventListener('click', function(e) {
+  function ensureNativeSubmit(e) {
+    var f = e.target;
+    if (f && f.matches && f.matches('form[data-rs-form]')) {
+      // Block any other handler
       e.preventDefault();
       e.stopImmediatePropagation();
-      // Remove potential listeners from form by cloning (safeguard)
-      var clone = form.cloneNode(true);
-      form.parentNode.replaceChild(clone, form);
-      // Native submit, no events fired
-      HTMLFormElement.prototype.submit.call(clone);
-    }, true); // capture to run before other handlers
+      // Make sure we don't have a target
+      f.removeAttribute('target');
+      // Do native submit (no events fired)
+      HTMLFormElement.prototype.submit.call(f);
+    }
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setup);
-  } else {
-    setup();
-  }
+  // Highest priority capture listener
+  document.addEventListener('submit', ensureNativeSubmit, true);
 })();
 </script>
 
