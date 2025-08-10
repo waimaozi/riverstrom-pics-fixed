@@ -2339,5 +2339,27 @@
   });
 });
   </script>
- </body>
+ 
+<script>
+  // Neutralize any form-handler that re-adds target or blocks submit
+  (function () {
+    function cleanseForms() {
+      document.querySelectorAll('form[data-rs-form]').forEach(function (form) {
+        // Clone to drop any submit listeners
+        var clone = form.cloneNode(true);
+        // Ensure method/action are preserved and target removed
+        clone.removeAttribute('target');
+        // Replace original
+        form.replaceWith(clone);
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', cleanseForms);
+    } else {
+      cleanseForms();
+    }
+  })();
+</script>
+
+</body>
 </html>
