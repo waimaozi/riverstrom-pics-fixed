@@ -71,8 +71,7 @@
  </head>
  <body>
   <!-- Framer event tracking removed -->
-  <script src="assets/js/form-handler.js">
-  </script>
+  
   <div data-framer-hydrate-v2='{"routeId":"augiA20Il","localeId":"default","breakpoints":[{"hash":"72rtr7","mediaQuery":"(min-width: 1440px)"},{"hash":"1xraqrb","mediaQuery":"(min-width: 810px) and (max-width: 1439px)"},{"hash":"si4f46","mediaQuery":"(max-width: 809px)"},{"hash":"qot2z2","mediaQuery":"(min-width: 1440px)"},{"hash":"ic1k5r","mediaQuery":"(min-width: 810px) and (max-width: 1439px)"},{"hash":"jybduh","mediaQuery":"(max-width: 809px)"}]}' data-framer-page-optimized-at="2025-06-05T14:05:26.758Z" data-framer-ssr-released-at="2025-06-04T08:59:37.383Z" id="main">
    <style data-framer-html-style="">
     :root body { background: rgb(255, 255, 255); }
@@ -2317,7 +2316,8 @@
   </script>
   <div aria-hidden="true" id="svg-templates" style="position: absolute; overflow: hidden; bottom: 0; left: 0; width: 0; height: 0; z-index: 0; contain: strict">
   </div>
-  
+  <iframe name="rsFormSink" style="display:none">
+  </iframe>
   <script id="rsFormUX">
    document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('form[data-rs-form]').forEach(form => {
@@ -2340,41 +2340,11 @@
   </script>
  
 <script>
-(function() {
-  function stripTarget(el) {
-    if (el && el.getAttribute && el.getAttribute('target') === 'rsFormSink') {
-      el.removeAttribute('target');
-    }
-  }
-  function sanitizeAll() {
-    document.querySelectorAll('form[data-rs-form]').forEach(function(form) {
-      stripTarget(form);
-    });
-  }
-  // Run after all scripts have loaded
-  window.addEventListener('load', function() {
-    sanitizeAll();
-    // Observe future mutations that try to re-set target
-    var obs = new MutationObserver(function(mutations) {
-      mutations.forEach(function(m) {
-        if (m.type === 'attributes' && m.attributeName === 'target') {
-          stripTarget(m.target);
-        }
-      });
-    });
-    document.querySelectorAll('form[data-rs-form]').forEach(function(form) {
-      obs.observe(form, { attributes: true, attributeFilter: ['target'] });
-      // Ensure no script cancels submit: take over at capture-phase once
-      form.addEventListener('submit', function(ev) {
-        // Let native submit happen, but stop other listeners from preventing it
-        ev.stopImmediatePropagation();
-        // ensure no target
-        form.removeAttribute('target');
-        // Do NOT preventDefault; allow normal submit to action URL
-      }, true); // capture
-    });
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('form[data-rs-form]').forEach(function (form) {
+    form.removeAttribute('target');
   });
-})();
+});
 </script>
 
 </body>
