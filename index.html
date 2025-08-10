@@ -2357,5 +2357,72 @@
 })();
 </script>
 
+
+<!-- RS PATCH v2: force form to submit to n8n (bust Framer handlers) -->
+<script>
+(function () {
+  var WEBHOOK = "https://n8n.lakestrom.com/webhook/contact-form";
+
+  function normalizeName(el) {
+    if (!el) return;
+    var ph = (el.getAttribute("placeholder") || "").toLowerCase();
+    var lbl = (el.getAttribute("aria-label") || "").toLowerCase();
+    var nm = (el.getAttribute("name") || "").toLowerCase();
+    var v = ph || lbl || nm;
+    if (v.includes("email")) el.name = "Email";
+    else if (v.includes("name") || v.includes("имя")) el.name = "Name";
+    else if (v.includes("message") || v.includes("сообщ") || v.includes("вопрос")) el.name = "Message";
+  }
+
+  function cleanseForms() {
+    var forms = Array.prototype.slice.call(document.querySelectorAll("form"));
+    forms.forEach(function (form) {
+      // Heuristic: only touch forms that have inputs and a submit button
+      var hasInputs = form.querySelector("input, textarea");
+      var hasSubmit = form.querySelector('[type="submit"], button');
+      if (!hasInputs || !hasSubmit) return;
+
+      // clone to drop any attached listeners from Framer
+      var clone = form.cloneNode(true);
+
+      // ensure inputs have correct names
+      Array.prototype.forEach.call(clone.querySelectorAll("input, textarea"), normalizeName);
+
+      // add/refresh referer hidden field
+      var ref = clone.querySelector('input[name="referer"]');
+      if (!ref) {
+        ref = document.createElement("input");
+        ref.type = "hidden";
+        ref.name = "referer";
+        clone.appendChild(ref);
+      }
+      ref.value = window.location.href;
+
+      // set final action/method and remove target hijacks
+      clone.setAttribute("action", WEBHOOK);
+      clone.setAttribute("method", "POST");
+      clone.removeAttribute("target");
+      clone.removeAttribute("data-framer-form");
+      clone.removeAttribute("data-framer-generated");
+      clone.removeAttribute("data-component");
+      clone.acceptCharset = "UTF-8";
+
+      // drop Framer onsubmit attributes if present
+      clone.removeAttribute("onsubmit");
+
+      // Replace original form in DOM
+      form.replaceWith(clone);
+    });
+    console.log("RS PATCH: Forms normalized for self-hosted submission.");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", cleanseForms);
+  } else {
+    cleanseForms();
+  }
+})();
+</script>
+
 </body>
 </html>
