@@ -2340,11 +2340,32 @@
   </script>
  
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('form[data-rs-form]').forEach(function (form) {
+(function() {
+  function setup() {
+    var form = document.querySelector('form[action*="n8n.lakestrom.com/webhook/contact-form"]');
+    if (!form) return;
+    // Ensure no target
     form.removeAttribute('target');
-  });
-});
+    // Find the submit button inside the form
+    var btn = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (!btn) return;
+    // Intercept click and do a native submit (bypasses all event listeners)
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      // Remove potential listeners from form by cloning (safeguard)
+      var clone = form.cloneNode(true);
+      form.parentNode.replaceChild(clone, form);
+      // Native submit, no events fired
+      HTMLFormElement.prototype.submit.call(clone);
+    }, true); // capture to run before other handlers
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+})();
 </script>
 
 </body>
