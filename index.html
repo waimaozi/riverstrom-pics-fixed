@@ -2317,8 +2317,7 @@
   </script>
   <div aria-hidden="true" id="svg-templates" style="position: absolute; overflow: hidden; bottom: 0; left: 0; width: 0; height: 0; z-index: 0; contain: strict">
   </div>
-  <iframe name="rsFormSink" style="display:none">
-  </iframe>
+  
   <script id="rsFormUX">
    document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('form[data-rs-form]').forEach(form => {
@@ -2341,24 +2340,41 @@
   </script>
  
 <script>
-  // Neutralize any form-handler that re-adds target or blocks submit
-  (function () {
-    function cleanseForms() {
-      document.querySelectorAll('form[data-rs-form]').forEach(function (form) {
-        // Clone to drop any submit listeners
-        var clone = form.cloneNode(true);
-        // Ensure method/action are preserved and target removed
-        clone.removeAttribute('target');
-        // Replace original
-        form.replaceWith(clone);
+(function() {
+  function stripTarget(el) {
+    if (el && el.getAttribute && el.getAttribute('target') === 'rsFormSink') {
+      el.removeAttribute('target');
+    }
+  }
+  function sanitizeAll() {
+    document.querySelectorAll('form[data-rs-form]').forEach(function(form) {
+      stripTarget(form);
+    });
+  }
+  // Run after all scripts have loaded
+  window.addEventListener('load', function() {
+    sanitizeAll();
+    // Observe future mutations that try to re-set target
+    var obs = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        if (m.type === 'attributes' && m.attributeName === 'target') {
+          stripTarget(m.target);
+        }
       });
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', cleanseForms);
-    } else {
-      cleanseForms();
-    }
-  })();
+    });
+    document.querySelectorAll('form[data-rs-form]').forEach(function(form) {
+      obs.observe(form, { attributes: true, attributeFilter: ['target'] });
+      // Ensure no script cancels submit: take over at capture-phase once
+      form.addEventListener('submit', function(ev) {
+        // Let native submit happen, but stop other listeners from preventing it
+        ev.stopImmediatePropagation();
+        // ensure no target
+        form.removeAttribute('target');
+        // Do NOT preventDefault; allow normal submit to action URL
+      }, true); // capture
+    });
+  });
+})();
 </script>
 
 </body>
