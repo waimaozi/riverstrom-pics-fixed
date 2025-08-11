@@ -69,52 +69,55 @@
     }
   </script>
  </head>
- \1\n
-<!-- RS SCROLL PATCH: open at top unless URL has a hash -->
+ <body>
+
+<!-- RS SCROLL LOCK v2: force opening at top, neutralize auto-scroll for first 2s -->
 <script>
 (function(){
   try {
-    if (!location.hash) {
-      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-      window.scrollTo(0, 0);
-      window.addEventListener('pageshow', function(e){ if (e.persisted && !location.hash) window.scrollTo(0,0); });
+    if (location.hash) return; // respect anchors
+    // 1) Disable history restore
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+    // 2) Neutralize auto focus autoscroll
+    document.addEventListener('DOMContentLoaded', function(){
+      const af = document.querySelectorAll('[autofocus]');
+      af.forEach(el => el.removeAttribute('autofocus'));
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+    }, {once:true});
+
+    // 3) Temporarily block scrollIntoView (Framer often calls it on mount)
+    const origSIV = Element.prototype.scrollIntoView;
+    let restored = false;
+    Element.prototype.scrollIntoView = function(){ /* blocked by RS SCROLL LOCK */ };
+    setTimeout(function(){
+      if (!restored) { Element.prototype.scrollIntoView = origSIV; restored = true; }
+    }, 2000);
+
+    // 4) Keep page at top for ~1.5s while hydration runs
+    let t0 = performance.now();
+    function keepTop(){
+      if (location.hash) return; // user navigated to anchor
+      const dt = performance.now() - t0;
+      if (dt < 1500) {
+        // only enforce if user не скроллил сам
+        if ((document.scrollingElement?.scrollTop || window.pageYOffset) < 10) {
+          window.scrollTo(0,0);
+        }
+        requestAnimationFrame(keepTop);
+      }
     }
-  } catch(_) {}
-})();
-</script>
+    // run ASAP
+    window.scrollTo(0,0);
+    requestAnimationFrame(keepTop);
 
-
-<!-- RS EARLY GUARD v1: force native submit before Framer hydration -->
-<script>
-(function(){
-  var WEBHOOK = "https://n8n.lakestrom.com/webhook/contact-form";
-  // Run as soon as possible
-  document.addEventListener('pointerdown', function(ev){
-    var target = ev.target;
-    // Find a submit control (button or input[type=submit])
-    var btn = target && (target.closest && target.closest('button,[type=submit]'));
-    if(!btn) return;
-    // Get owning form
-    var form = btn.form || (btn.closest && btn.closest('form'));
-    if(!form) return;
-    // Mark to avoid double-submits
-    if(form.__rs_forced__) return;
-    form.__rs_forced__ = true;
-    try {
-      // Normalize form props
-      form.setAttribute('action', WEBHOOK);
-      form.setAttribute('method', 'POST');
-      form.removeAttribute('target');
-      // Prevent any later JS (Framer) from handling this click/submit
-      ev.preventDefault();
-      ev.stopImmediatePropagation();
-      // Use native submit (no events fired)
-      setTimeout(function(){
-        HTMLFormElement.prototype.submit.call(form);
-      }, 0);
-    } catch(e){ console && console.warn && console.warn('RS EARLY GUARD error', e); }
-  }, true); // capture to win the race
-  console.log('RS EARLY GUARD v1 installed');
+    // 5) Also handle bfcache restore
+    window.addEventListener('pageshow', function(e){
+      if (e.persisted && !location.hash) window.scrollTo(0,0);
+    });
+  } catch(e) { console && console.warn && console.warn('RS SCROLL LOCK error', e); }
 })();
 </script>
 
