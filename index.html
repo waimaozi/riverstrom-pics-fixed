@@ -69,7 +69,20 @@
     }
   </script>
  </head>
- <body>
+ \1\n
+<!-- RS SCROLL PATCH: open at top unless URL has a hash -->
+<script>
+(function(){
+  try {
+    if (!location.hash) {
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      window.scrollTo(0, 0);
+      window.addEventListener('pageshow', function(e){ if (e.persisted && !location.hash) window.scrollTo(0,0); });
+    }
+  } catch(_) {}
+})();
+</script>
+
 
 <!-- RS EARLY GUARD v1: force native submit before Framer hydration -->
 <script>
