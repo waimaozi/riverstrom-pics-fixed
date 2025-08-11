@@ -1,60 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
  <head>
-<!-- RS SCROLL LOCK v3: freeze top & neutralize auto-scroll for first 1800ms -->
-<script>
-(function(){
-  try {
-    // Respect anchor deep-links (e.g., /#form)
-    if (location.hash) return;
-
-    // Disable history-based scroll restoration
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-
-    // Remove autofocus before it can scroll
-    document.addEventListener('DOMContentLoaded', function(){
-      var af = document.querySelectorAll('[autofocus]');
-      af.forEach(function(el){ el.removeAttribute('autofocus'); });
-      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    }, { once: true });
-
-    // Temporarily block programmatic scrolling APIs often used by hydration
-    var _siv = Element.prototype.scrollIntoView;
-    var _sto = window.scrollTo;
-    var unblocked = false;
-    Element.prototype.scrollIntoView = function(){};
-    window.scrollTo = function(){};
-    var unblock = function(){
-      if (unblocked) return;
-      Element.prototype.scrollIntoView = _siv;
-      window.scrollTo = _sto;
-      unblocked = true;
-    };
-
-    // Keep page pinned to top for ~1.8s while Framer hydrates
-    var start = performance.now();
-    function pinTop(){
-      if (location.hash) { unblock(); return; } // user navigated to anchor
-      var dt = performance.now() - start;
-      if (dt < 1800) {
-        var sc = (document.scrollingElement && document.scrollingElement.scrollTop) || window.pageYOffset || 0;
-        if (sc < 5) { _sto.call(window, 0, 0); }
-        requestAnimationFrame(pinTop);
-      } else {
-        unblock();
-      }
-    }
-    _sto.call(window, 0, 0);
-    requestAnimationFrame(pinTop);
-
-    // Handle bfcache restore
-    window.addEventListener('pageshow', function(e){
-      if (e.persisted && !location.hash) _sto.call(window, 0, 0);
-    });
-  } catch (e) { try { console.warn('RS SCROLL LOCK v3 error', e); } catch(_e){} }
-})();
-</script>
-
   <meta charset="utf-8"/>
   <meta content="width=device-width" name="viewport"/>
   <meta content="Framer eea9f0c" name="generator"/>
@@ -125,7 +71,57 @@
  </head>
  <body>
 
-<!-- Framer event tracking removed -->
+<!-- RS SCROLL LOCK v2: force opening at top, neutralize auto-scroll for first 2s -->
+<script>
+(function(){
+  try {
+    if (location.hash) return; // respect anchors
+    // 1) Disable history restore
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+    // 2) Neutralize auto focus autoscroll
+    document.addEventListener('DOMContentLoaded', function(){
+      const af = document.querySelectorAll('[autofocus]');
+      af.forEach(el => el.removeAttribute('autofocus'));
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+    }, {once:true});
+
+    // 3) Temporarily block scrollIntoView (Framer often calls it on mount)
+    const origSIV = Element.prototype.scrollIntoView;
+    let restored = false;
+    Element.prototype.scrollIntoView = function(){ /* blocked by RS SCROLL LOCK */ };
+    setTimeout(function(){
+      if (!restored) { Element.prototype.scrollIntoView = origSIV; restored = true; }
+    }, 2000);
+
+    // 4) Keep page at top for ~1.5s while hydration runs
+    let t0 = performance.now();
+    function keepTop(){
+      if (location.hash) return; // user navigated to anchor
+      const dt = performance.now() - t0;
+      if (dt < 1500) {
+        // only enforce if user не скроллил сам
+        if ((document.scrollingElement?.scrollTop || window.pageYOffset) < 10) {
+          window.scrollTo(0,0);
+        }
+        requestAnimationFrame(keepTop);
+      }
+    }
+    // run ASAP
+    window.scrollTo(0,0);
+    requestAnimationFrame(keepTop);
+
+    // 5) Also handle bfcache restore
+    window.addEventListener('pageshow', function(e){
+      if (e.persisted && !location.hash) window.scrollTo(0,0);
+    });
+  } catch(e) { console && console.warn && console.warn('RS SCROLL LOCK error', e); }
+})();
+</script>
+
+  <!-- Framer event tracking removed -->
   <script src="../assets/js/form-handler.js">
   </script>
   <div data-framer-hydrate-v2='{"routeId":"R2QdsDKTc","localeId":"default","breakpoints":[{"hash":"llkbhr","mediaQuery":"(min-width: 1440px)"},{"hash":"77przv","mediaQuery":"(min-width: 810px) and (max-width: 1439px)"},{"hash":"h18c1","mediaQuery":"(max-width: 809px)"},{"hash":"qot2z2","mediaQuery":"(min-width: 1440px)"},{"hash":"ic1k5r","mediaQuery":"(min-width: 810px) and (max-width: 1439px)"},{"hash":"jybduh","mediaQuery":"(max-width: 809px)"}]}' data-framer-page-optimized-at="2025-06-05T14:05:26.699Z" data-framer-ssr-released-at="2025-06-04T08:59:37.383Z" id="main">
@@ -1042,69 +1038,6 @@
   <link fetchpriority="low" href="assets/scripts/script_main.BQG54JAY.mjs" rel="modulepreload"/>
   <script async="" data-framer-bundle="main" fetchpriority="low" src="assets/scripts/script_main.BQG54JAY.mjs" type="module">
   </script>
-<!-- RS EARLY SUBMIT v2: submit asap on pointerdown/enter to bypass Framer JS -->
-<script>
-(function(){
-  // Only act for forms explicitly marked for RS
-  function findRSForm(el){
-    while (el && el !== document) {
-      if (el.tagName === 'FORM' && el.hasAttribute('data-rs-form')) return el;
-      el = el.parentNode;
-    }
-    return null;
-  }
-
-  // Helper: ensure safe attributes before native submit
-  function prepAndSubmit(form){
-    try {
-      form.removeAttribute('target'); // avoid opening new tabs/iframes
-      // Ensure action/method sane
-      if (!form.getAttribute('method')) form.setAttribute('method', 'POST');
-      // native submit (skips JS listeners)
-      HTMLFormElement.prototype.submit.call(form);
-    } catch(e) {
-      // swallow
-    }
-  }
-
-  // 1) Pointerdown on submit controls -> submit immediately
-  function onPD(ev){
-    var t = ev.target;
-    if (!t || !(t.closest)) return;
-    var btn = t.closest('button[type="submit"], input[type="submit"]');
-    if (!btn) return;
-    var form = findRSForm(btn);
-    if (!form) return;
-
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
-    // some browsers need microtask to let focus settle
-    setTimeout(function(){ prepAndSubmit(form); }, 0);
-  }
-  document.addEventListener('pointerdown', onPD, true);
-
-  // 2) Keyboard Enter inside form -> also submit ASAP
-  function onKey(ev){
-    if (ev.key !== 'Enter') return;
-    var form = findRSForm(ev.target);
-    if (!form) return;
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
-    setTimeout(function(){ prepAndSubmit(form); }, 0);
-  }
-  document.addEventListener('keydown', onKey, true);
-
-  // 3) Safety net: capture submit and re-route to native immediately
-  document.addEventListener('submit', function(ev){
-    var f = ev.target;
-    if (!(f && f.matches && f.matches('form[data-rs-form]'))) return;
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
-    prepAndSubmit(f);
-  }, true);
-})();
-</script>
-
   <div aria-hidden="true" id="svg-templates" style="position: absolute; overflow: hidden; bottom: 0; left: 0; width: 0; height: 0; z-index: 0; contain: strict">
   </div>
   <iframe name="rsFormSink" style="display:none">
