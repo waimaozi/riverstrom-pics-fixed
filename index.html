@@ -5777,6 +5777,43 @@
         opacity: 0.95;
       }
     </style>
+    <script>
+(function () {
+  // Если пришли по старой ссылке — сразу в /contact
+  if (location.hash === '#contactform') location.replace('./contact');
+
+  function fixHeaderCTA() {
+    // Ищем обе версии шапочной кнопки
+    const ctas = Array.from(
+      document.querySelectorAll(
+        'a[data-framer-name="Desktop / Primary"], a[data-framer-name="Tablet/Mobile Primary"], [data-framer-name="Nav section"] a'
+      )
+    ).filter(el => /оставить\s+заявку/i.test(el.textContent || ''));
+
+    ctas.forEach(a => {
+      a.setAttribute('href', './contact');
+      a.removeAttribute('data-framer-page-link-href');
+      // на случай перехватов — жёстко ведём в /contact
+      ['pointerdown','click'].forEach(t =>
+        a.addEventListener(t, e => {
+          e.preventDefault(); e.stopImmediatePropagation();
+          location.href = './contact';
+        }, true)
+      );
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixHeaderCTA, { once:true, capture:true });
+  } else { fixHeaderCTA(); }
+
+  // Framer может пересоздать DOM: подстрахуемся 5 сек
+  const mo = new MutationObserver(fixHeaderCTA);
+  mo.observe(document.documentElement, { childList:true, subtree:true });
+  setTimeout(() => mo.disconnect(), 5000);
+})();
+</script>
+
   </head>
   <body>
     <!-- Framer event tracking removed -->
@@ -11717,7 +11754,7 @@
           <div
             #class="framer-1txb7c0"
             #data-framer-name="Contact"
-            #id="contactform"
+            #id="contact-form"
             #href="./contact"
           >
             <div class="framer-9hmm87">
