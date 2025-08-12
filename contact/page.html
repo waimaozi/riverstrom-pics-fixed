@@ -18,11 +18,11 @@
       --text:#16181d;
       --muted:#5e6472;
       --border:#eceff3;
-      --accent:#1DE189;   /* брендовый зелёный */
+      --accent:#1DE189;
       --ink:#063a28;
       --r:20px;
       --pill:999px;
-      --pill-bg:#262628;  /* чёрная «пилюля», как на главной */
+      --pill-bg:#262628;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -114,7 +114,7 @@
 
     <section class="grid">
       <div class="card">
-        <!-- ВСТАВЬ СЮДА URL вебхука n8n -->
+        <!-- продовой вебхук n8n -->
         <form action="https://n8n.lakestrom.com/webhook/contact-form" method="post" accept-charset="UTF-8">
           <!-- honeypot -->
           <input class="hp" type="text" name="company" autocomplete="off" tabindex="-1">
@@ -146,6 +146,9 @@
             <textarea id="message" name="message" placeholder="Коротко о задаче…"></textarea>
           </div>
 
+          <!-- 🔹 НОВОЕ: куда вернуть пользователя после POST -->
+          <input type="hidden" name="returnUrl" id="returnUrl">
+
           <button class="submit" type="submit">Отправить</button>
           <p class="muted">Отправляя форму, вы соглашаетесь с обработкой персональных данных.</p>
         </form>
@@ -154,7 +157,7 @@
       <aside class="card">
         <h2 style="margin:0 0 12px 0;">Контакты</h2>
 
-        <!-- Обфускация email: адрес не виден в исходнике; открывается только почтовая программа -->
+        <!-- Обфускация email -->
         <p id="mailWrap">
           <a id="mailLink" data-u="YnVzaW5lc3M=" data-d="cml2ZXJzdHJvbS5haQ==" href="#" rel="nofollow">показать email</a>
           <noscript><span class="muted">business [at] riverstrom [dot] ai</span></noscript>
@@ -171,40 +174,41 @@
   <footer><div class="wrap">© 2025 ООО «Риверстром». Все права защищены.</div></footer>
 
   <script>
-    // Email обфускация: показываем адрес по клику и превращаем ссылку в mailto:
+    // 🔹 НОВОЕ: записываем текущий URL для редиректа из n8n (PRG)
+    (function () {
+      var el = document.getElementById('returnUrl');
+      if (el) el.value = location.href.split('#')[0];
+    })();
+
+    // Email обфускация: по клику раскрываем адрес и открываем почтовый клиент
     (function(){
       var a = document.getElementById('mailLink');
       if (!a) return;
+      try {
+        var u = atob(a.getAttribute('data-u'));  // "business"
+        var d = atob(a.getAttribute('data-d'));  // "riverstrom.ai"
+        var email = u + '@' + d;
 
-      function reveal(e){
-        if (e) e.preventDefault();
-        try {
-          var u = atob(a.getAttribute('data-u') || '');  // "business"
-          var d = atob(a.getAttribute('data-d') || '');  // "riverstrom.ai"
-          var email = (u && d) ? (u + '@' + d) : '';
-          if (!email) return;
+        a.addEventListener('click', function(e){
+          e.preventDefault();
+          // меняем текст и ссылку, затем открываем почтовую программу
+          a.textContent = email;
+          a.setAttribute('href', 'mailto:' + email);
+          location.href = 'mailto:' + email;
+        });
+      } catch(e) { /* тихо игнорим */ }
+    })();
 
-          a.textContent = email;        // не светим в исходнике до клика
-          a.href = 'mailto:' + email;
-          a.removeAttribute('data-u');
-          a.removeAttribute('data-d');
-          a.removeAttribute('role');
-          a.removeAttribute('tabindex');
-          a.removeAttribute('aria-label');
-        } catch (err) {
-          /* no-op */
-        }
-      }
-
-      // доступность: можно нажать Enter/Space
-      a.setAttribute('role','button');
-      a.setAttribute('tabindex','0');
-      a.setAttribute('aria-label','Показать email');
-
-      a.addEventListener('click', reveal);
-      a.addEventListener('keydown', function(e){
-        if (e.key === 'Enter' || e.key === ' ') reveal(e);
-      });
+    // 🔹 НОВОЕ: показываем «Спасибо» при ?thanks=1
+    (function () {
+      var p = new URLSearchParams(location.search);
+      if (!p.get('thanks')) return;
+      var form = document.querySelector('form');
+      if (!form) return;
+      var box = document.createElement('div');
+      box.className = 'card';
+      box.innerHTML = '<h2 style="margin-top:0">Спасибо!</h2><p>Мы получили вашу заявку и свяжемся с вами в ближайшее время.</p>';
+      form.replaceWith(box);
     })();
   </script>
 </body>
