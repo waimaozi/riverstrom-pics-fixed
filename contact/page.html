@@ -171,13 +171,41 @@
   <footer><div class="wrap">© 2025 ООО «Риверстром». Все права защищены.</div></footer>
 
   <script>
-    // Email обфускация: показываем адрес и открываем только через почтовый клиент
+    // Email обфускация: показываем адрес по клику и превращаем ссылку в mailto:
     (function(){
       var a = document.getElementById('mailLink');
       if (!a) return;
-      try {
-        var u = atob(a.getAttribute('data-u'));  // "business"
-        var d = atob(a.getAttribute('data-d'));  // "riverstrom.ai"
-        var email = u + '@' + d;
-        a.textContent = email;                   // не светим в исходнике
-        a.ad
+
+      function reveal(e){
+        if (e) e.preventDefault();
+        try {
+          var u = atob(a.getAttribute('data-u') || '');  // "business"
+          var d = atob(a.getAttribute('data-d') || '');  // "riverstrom.ai"
+          var email = (u && d) ? (u + '@' + d) : '';
+          if (!email) return;
+
+          a.textContent = email;        // не светим в исходнике до клика
+          a.href = 'mailto:' + email;
+          a.removeAttribute('data-u');
+          a.removeAttribute('data-d');
+          a.removeAttribute('role');
+          a.removeAttribute('tabindex');
+          a.removeAttribute('aria-label');
+        } catch (err) {
+          /* no-op */
+        }
+      }
+
+      // доступность: можно нажать Enter/Space
+      a.setAttribute('role','button');
+      a.setAttribute('tabindex','0');
+      a.setAttribute('aria-label','Показать email');
+
+      a.addEventListener('click', reveal);
+      a.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') reveal(e);
+      });
+    })();
+  </script>
+</body>
+</html>
